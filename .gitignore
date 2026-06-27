@@ -13,3 +13,5 @@ build_test/
 # OS
 Thumbs.db
 .DS_Store
+
+publish/

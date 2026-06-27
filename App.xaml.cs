@@ -17,6 +17,9 @@ namespace DiskRescue
 
         protected override void OnStartup(StartupEventArgs e)
         {
+            // Register legacy code pages (e.g. cp850 used by chkdsk console output) — not built into .NET by default.
+            System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
+
             // Headless verification mode:  DiskRescue.exe --cli <reportPath>
             if (e.Args.Length >= 1 && e.Args[0] == "--cli")
             {

@@ -32,8 +32,12 @@
         <Border Grid.Row="1" Style="{StaticResource Card}" Margin="0,0,0,14">
             <DockPanel>
                 <Grid DockPanel.Dock="Top" Margin="0,0,0,10">
-                    <TextBlock Text="בריאות הכונן (SMART)" Style="{StaticResource H2}" VerticalAlignment="Center"/>
-                    <Button x:Name="BtnSmart" Content="רענן SMART" HorizontalAlignment="Left" Padding="12,6" Click="BtnSmart_Click"/>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Grid.Column="0" Text="בריאות הכונן (SMART)" Style="{StaticResource H2}" VerticalAlignment="Center"/>
+                    <Button Grid.Column="1" x:Name="BtnSmart" Content="רענן SMART" Padding="12,6" Click="BtnSmart_Click"/>
                 </Grid>
                 <WrapPanel x:Name="SmartPanel" Orientation="Horizontal"/>
             </DockPanel>
