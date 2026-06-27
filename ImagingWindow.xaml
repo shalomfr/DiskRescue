@@ -1,0 +1,82 @@
+<Window x:Class="DiskRescue.ImagingWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="שכפול דיסק (Imaging) + SMART" Height="680" Width="900" MinHeight="600" MinWidth="780"
+        FlowDirection="RightToLeft" FontFamily="Segoe UI Variable Text, Segoe UI"
+        WindowStartupLocation="CenterOwner" Background="{StaticResource Bg0Brush}" UseLayoutRounding="True">
+    <Grid Margin="22">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- header -->
+        <Border Grid.Row="0" CornerRadius="16" Padding="20,16" Background="{StaticResource HeaderGradient}"
+                BorderBrush="{StaticResource StrokeBrush}" BorderThickness="1" Margin="0,0,0,16">
+            <StackPanel Orientation="Horizontal">
+                <Border Width="44" Height="44" CornerRadius="12" Background="{StaticResource AccentGradient}">
+                    <TextBlock Text="🧬" FontSize="22" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                </Border>
+                <StackPanel Margin="14,0,0,0" VerticalAlignment="Center">
+                    <TextBlock x:Name="TxtHeader" Text="שכפול דיסק" Style="{StaticResource H1}"/>
+                    <TextBlock Text="קודם משכפלים את הכונן הגוסס לתמונה בטוחה — ורק אז משחזרים מהעותק"
+                               Style="{StaticResource Body}" Margin="0,1,0,0"/>
+                </StackPanel>
+            </StackPanel>
+        </Border>
+
+        <!-- SMART card -->
+        <Border Grid.Row="1" Style="{StaticResource Card}" Margin="0,0,0,14">
+            <DockPanel>
+                <Grid DockPanel.Dock="Top" Margin="0,0,0,10">
+                    <TextBlock Text="בריאות הכונן (SMART)" Style="{StaticResource H2}" VerticalAlignment="Center"/>
+                    <Button x:Name="BtnSmart" Content="רענן SMART" HorizontalAlignment="Left" Padding="12,6" Click="BtnSmart_Click"/>
+                </Grid>
+                <WrapPanel x:Name="SmartPanel" Orientation="Horizontal"/>
+            </DockPanel>
+        </Border>
+
+        <!-- destination -->
+        <Border Grid.Row="2" Style="{StaticResource Card}" Margin="0,0,0,14">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock Grid.Column="0" Text="קובץ תמונה" Style="{StaticResource SectionLabel}" VerticalAlignment="Center" Margin="0,0,12,0"/>
+                <TextBox Grid.Column="1" x:Name="TxtImage" FlowDirection="LeftToRight"/>
+                <Button Grid.Column="2" x:Name="BtnBrowse" Content="בחר…" Margin="10,0,0,0" Click="BtnBrowse_Click"/>
+            </Grid>
+        </Border>
+
+        <!-- controls + progress -->
+        <Border Grid.Row="3" Style="{StaticResource Card}" Margin="0,0,0,14">
+            <StackPanel>
+                <StackPanel Orientation="Horizontal">
+                    <Button x:Name="BtnStart" Content="▶  התחל שכפול" Style="{StaticResource BtnSuccess}" Click="BtnStart_Click"/>
+                    <Button x:Name="BtnPause" Content="⏸  השהה" Style="{StaticResource BtnWarning}" Margin="8,0,0,0" IsEnabled="False" Click="BtnPause_Click"/>
+                    <Button x:Name="BtnStop" Content="⏹  עצור" Style="{StaticResource BtnDanger}" Margin="8,0,0,0" IsEnabled="False" Click="BtnStop_Click"/>
+                </StackPanel>
+                <ProgressBar x:Name="Bar" Margin="0,14,0,0" Minimum="0" Maximum="100"/>
+                <TextBlock x:Name="TxtStats" Margin="0,10,0,0" Style="{StaticResource Caption}" Text="בחר קובץ יעד ולחץ ‘התחל שכפול’."/>
+            </StackPanel>
+        </Border>
+
+        <!-- after imaging: recover from the image -->
+        <Border Grid.Row="4" Style="{StaticResource Card}">
+            <StackPanel>
+                <TextBlock Text="שחזור מהתמונה" Style="{StaticResource SectionLabel}" Margin="0,0,0,8"/>
+                <TextBlock Style="{StaticResource Body}" Margin="0,0,0,12"
+                           Text="לאחר השכפול, הרץ את השחזור על קובץ התמונה (לא על הכונן המקורי). זמין גם אם השכפול חלקי."/>
+                <StackPanel Orientation="Horizontal">
+                    <Button x:Name="BtnBrowseImg" Content="דפדפן קבצים על התמונה (NTFS)" Click="BtnBrowseImg_Click"/>
+                    <Button x:Name="BtnDeepImg" Content="שחזור עמוק על התמונה" Margin="8,0,0,0" Click="BtnDeepImg_Click"/>
+                </StackPanel>
+            </StackPanel>
+        </Border>
+    </Grid>
+</Window>

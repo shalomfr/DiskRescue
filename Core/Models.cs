@@ -40,9 +40,10 @@ namespace DiskRescue.Core
         public long PartitionOffset;
         public long PartitionSize;
         public string VolumePath = "";       // \\?\Volume{guid}\
+        public string SourcePathOverride;    // when set (e.g. an image file), used instead of the physical-disk path
 
         public string DevicePath => $"\\\\.\\{Letter}:";
-        public string PhysicalPath => $"\\\\.\\PhysicalDrive{DiskNumber}";
+        public string PhysicalPath => SourcePathOverride ?? $"\\\\.\\PhysicalDrive{DiskNumber}";
         public bool IsExternal => BusType == 7;
         public bool IsRaw => string.IsNullOrWhiteSpace(FileSystem) || FileSystem.Equals("RAW", StringComparison.OrdinalIgnoreCase);
 

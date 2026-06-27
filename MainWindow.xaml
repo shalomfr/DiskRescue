@@ -65,6 +65,8 @@
                                 Margin="0,8,0,0" Padding="0,10" Click="BtnDeepScan_Click"/>
                         <Button x:Name="BtnBrowse" Content="דפדפן קבצים ו-Undelete (NTFS)"
                                 Margin="0,8,0,0" Padding="0,10" Click="BtnBrowse_Click"/>
+                        <Button x:Name="BtnImaging" Content="שכפול דיסק (Imaging) + SMART"
+                                Margin="0,8,0,0" Padding="0,10" Click="BtnImaging_Click"/>
                     </StackPanel>
 
                     <DataGrid x:Name="GridVolumes" Style="{StaticResource DataGridModern}"

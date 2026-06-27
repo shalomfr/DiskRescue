@@ -36,6 +36,14 @@ namespace DiskRescue
                 return;
             }
 
+            // Imaging engine self-test (no admin):  DiskRescue.exe --imagetest <reportPath>
+            if (e.Args.Length >= 1 && e.Args[0] == "--imagetest")
+            {
+                CliRunner.ImageSelfTest(e.Args.Length >= 2 ? e.Args[1] : "image_report.txt");
+                Shutdown(0);
+                return;
+            }
+
             // NTFS synthetic self-test (no admin):  DiskRescue.exe --ntfstest <outDir> <reportPath>
             if (e.Args.Length >= 1 && e.Args[0] == "--ntfstest")
             {

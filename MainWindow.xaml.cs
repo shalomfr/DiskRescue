@@ -54,6 +54,13 @@ namespace DiskRescue
             win.Show();
         }
 
+        private void BtnImaging_Click(object sender, RoutedEventArgs e)
+        {
+            var v = Selected;
+            if (v == null) { TxtStatus.Text = "בחר כונן קודם."; return; }
+            new ImagingWindow(v) { Owner = this }.Show();
+        }
+
         private void GridVolumes_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             if (Selected != null) TxtStatus.Text = $"נבחר כונן {Selected.Letter}:";
@@ -127,6 +134,10 @@ namespace DiskRescue
 
         private async void RunAction(VolumeInfo v, FixAction act)
         {
+            // These actions open a dedicated window rather than running a fix in place.
+            if (act.Kind == FixKind.MechanicalSuspect) { new ImagingWindow(v) { Owner = this }.Show(); return; }
+            if (act.Kind == FixKind.DeepScanNeeded) { new DeepScanWindow(v) { Owner = this }.Show(); return; }
+
             if (act.WritesToDisk)
             {
                 var ok = MessageBox.Show(

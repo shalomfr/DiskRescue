@@ -3,6 +3,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using DiskRescue.Core.Carving;
+using DiskRescue.Core.Imaging;
 using DiskRescue.Core.Ntfs;
 
 namespace DiskRescue.Core
@@ -10,6 +11,73 @@ namespace DiskRescue.Core
     /// <summary>Headless verification: runs full inventory + triage and writes a readable report to a file.</summary>
     public static class CliRunner
     {
+        // In-memory block source with a simulated unreadable (bad) region, for testing the imaging engine.
+        private sealed class FaultyReader : IBlockReader
+        {
+            private readonly byte[] _data; private readonly long _badStart, _badEnd;
+            public FaultyReader(byte[] data, long badStart, long badLen) { _data = data; _badStart = badStart; _badEnd = badStart + badLen; }
+            public long Length => _data.Length;
+            public byte[] Read(long off, int len)
+            {
+                if (off < _badEnd && off + len > _badStart) throw new IOException("simulated bad sector");
+                var b = new byte[len]; Array.Copy(_data, off, b, 0, len); return b;
+            }
+        }
+
+        /// <summary>Image a synthetic device with a simulated bad region; verify good data copied, bad zeroed, map correct, and resume works.</summary>
+        public static void ImageSelfTest(string reportPath)
+        {
+            var sb = new StringBuilder();
+            try
+            {
+                int size = 4 * 1024 * 1024;
+                long badStart = 2L * 1024 * 1024, badLen = 128 * 1024;
+                var data = new byte[size];
+                for (int i = 0; i < size; i++) data[i] = (byte)((i * 31) & 0xFF);
+
+                string img1 = Path.Combine(Path.GetTempPath(), "dr_image1.img");
+                var map1 = ImagingMap.Create(size);
+                new ImagingEngine().Run(new FaultyReader(data, badStart, badLen), img1, map1, null, () => false, m => { });
+
+                byte[] out1 = File.ReadAllBytes(img1);
+                bool goodMatch = true, badZero = true;
+                for (long i = 0; i < size; i++)
+                {
+                    bool inBad = i >= badStart && i < badStart + badLen;
+                    if (inBad) { if (out1[i] != 0) { badZero = false; break; } }
+                    else if (out1[i] != data[i]) { goodMatch = false; break; }
+                }
+                long done = map1.Bytes(BlockState.Done), badFinal = map1.Bytes(BlockState.BadFinal);
+
+                sb.AppendLine("=== Imaging self-test ===");
+                sb.AppendLine($"device size : {size}");
+                sb.AppendLine($"bad region  : [{badStart}, {badStart + badLen})  ({badLen} bytes)");
+                sb.AppendLine($"Done bytes  : {done}  (expected {size - badLen})");
+                sb.AppendLine($"BadFinal    : {badFinal}  (expected {badLen})");
+                sb.AppendLine($"good data copied correctly : {goodMatch}");
+                sb.AppendLine($"bad region zero-filled     : {badZero}");
+
+                // resume: stop after the first block, then continue; result must match the one-shot image
+                string img2 = Path.Combine(Path.GetTempPath(), "dr_image2.img");
+                var map2 = ImagingMap.Create(size);
+                var reader2 = new FaultyReader(data, badStart, badLen);
+                int n = 0; bool tripped = false;
+                new ImagingEngine().Run(reader2, img2, map2, null,
+                    () => { if (!tripped && n++ >= 1) { tripped = true; return true; } return false; }, m => { });
+                new ImagingEngine().Run(reader2, img2, map2, null, () => false, m => { });
+                byte[] out2 = File.ReadAllBytes(img2);
+                bool resumeMatch = out1.Length == out2.Length;
+                if (resumeMatch) for (int i = 0; i < size; i++) if (out1[i] != out2[i]) { resumeMatch = false; break; }
+                sb.AppendLine($"resume produces identical image : {resumeMatch}");
+
+                bool ok = goodMatch && badZero && done == size - badLen && badFinal == badLen && resumeMatch;
+                sb.AppendLine();
+                sb.AppendLine(ok ? ">>> ALL CHECKS PASSED" : ">>> SOME CHECKS FAILED");
+            }
+            catch (Exception ex) { sb.AppendLine("ERROR: " + ex); }
+            File.WriteAllText(reportPath, sb.ToString(), new UTF8Encoding(false));
+        }
+
         /// <summary>
         /// Full NTFS pipeline test on a synthetic image (no admin, no real disk):
         /// build -> open -> enumerate -> resolve paths -> recover (resident + non-resident) -> verify bytes.
