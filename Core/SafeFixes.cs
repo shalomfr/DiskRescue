@@ -34,11 +34,23 @@ namespace DiskRescue.Core
             string bOem = Encoding.ASCII.GetString(backup, 3, 8).TrimEnd();
             log($"גיבוי: '{bOem}', חתימה תקינה.");
 
-            // SAFETY 2: never overwrite a sector 0 that already holds a real boot sector.
+            // SAFETY 2: refuse only when sector 0 is GENUINELY healthy — i.e. it already equals the
+            // backup (nothing to restore), or it is a valid NTFS VBR with a sane BPB. A corrupt boot
+            // sector almost always still carries the 0x55AA signature, so the signature alone is not
+            // proof of health; checking it bluntly would block the very repair this function exists for.
             bool curHasBoot = current[510] == 0x55 && current[511] == 0xAA;
             bool curAllZero = AllZero(current);
+
+            if (curHasBoot && SectorsEqual(current, backup))
+                throw new InvalidOperationException("סקטור 0 כבר זהה לגיבוי — אין מה לשחזר.");
+
+            if (curHasBoot && !curAllZero && IsHealthyNtfsVbr(current, v))
+                throw new InvalidOperationException(
+                    "סקטור 0 מכיל סקטור אתחול NTFS תקין ושפוי — מסרב לדרוס. " +
+                    "אם בכל זאת ברצונך לשחזר מהגיבוי, יש לבצע זאת ידנית.");
+
             if (curHasBoot && !curAllZero)
-                throw new InvalidOperationException("סקטור 0 כבר מכיל סקטור אתחול — מסרב לדרוס.");
+                log("סקטור 0 מכיל חתימת אתחול אך ה-BPB פגום/לא תואם — ממשיך בשחזור מהגיבוי.");
 
             // Undo copy.
             Directory.CreateDirectory(UndoFolder);
@@ -103,6 +115,42 @@ namespace DiskRescue.Core
         }
 
         private static bool AllZero(byte[] b) { foreach (var x in b) if (x != 0) return false; return true; }
+
+        private static bool SectorsEqual(byte[] a, byte[] b)
+        {
+            if (a.Length != b.Length) return false;
+            for (int i = 0; i < a.Length; i++) if (a[i] != b[i]) return false;
+            return true;
+        }
+
+        /// <summary>
+        /// True only when sector 0 looks like a genuinely healthy NTFS VBR: OEM id "NTFS",
+        /// a power-of-two bytes-per-sector and sectors-per-cluster, and a total-sectors count
+        /// that fits the partition. A corrupt boot sector fails at least one of these checks.
+        /// </summary>
+        private static bool IsHealthyNtfsVbr(byte[] s, VolumeInfo v)
+        {
+            if (!(s[510] == 0x55 && s[511] == 0xAA)) return false;
+            if (Encoding.ASCII.GetString(s, 3, 8).TrimEnd() != "NTFS") return false;
+
+            int bps = BitConverter.ToUInt16(s, 0x0B);
+            if (bps < 256 || bps > 4096 || (bps & (bps - 1)) != 0) return false;
+
+            int spc = s[0x0D];
+            if (spc == 0 || (spc & (spc - 1)) != 0) return false;
+
+            long totalSectors = BitConverter.ToInt64(s, 0x28);
+            if (totalSectors <= 0) return false;
+
+            long partBytes = v.PartitionSize > 0 ? v.PartitionSize : (long)v.SizeBytes;
+            if (partBytes > 0)
+            {
+                long partSectors = partBytes / 512;
+                // NTFS records partition-size-minus-one (last sector holds the backup VBR).
+                if (totalSectors > partSectors) return false;
+            }
+            return true;
+        }
         private static string DateStamp()
         {
             var n = DateTime.Now;
